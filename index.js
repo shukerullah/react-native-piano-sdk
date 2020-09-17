@@ -9,6 +9,9 @@ const PianoSdk = {
   signIn(callback = () => {}) {
     PianoSdkModule.signIn(callback);
   },
+  signOut(callback = () => {}, accessToken: string = null) {
+    PianoSdkModule.signOut(callback, accessToken);
+  },
 };
 
 export default PianoSdk;

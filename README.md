@@ -21,7 +21,13 @@ _Underdevelopment, not supported at the moment._
 ```javascript
 import PianoSdk from "react-native-piano-sdk";
 
-// TODO: What to do with the module?
 PianoSdk.init(aid, endPoint, facebookAppId);
-PianoSdk.signIn();
+
+PianoSdk.signIn((response) => {
+  // TODO: What to do with signIn?
+});
+
+PianoSdk.signOut(() => {
+  // TODO: What to do with signOut?
+});
 ```

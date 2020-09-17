@@ -1,8 +1,11 @@
 package com.shukerullah.piano;
 
+import android.os.Build;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.webkit.CookieManager;
+import android.webkit.CookieSyncManager;
 
 import androidx.annotation.Nullable;
 
@@ -54,6 +57,7 @@ public class PianoSdkModule extends ReactContextBaseJavaModule implements Activi
             FacebookSdk.sdkInitialize(reactContext);
             pianoIdClient.with(new FacebookOAuthProvider());
         }
+        reactContext.addActivityEventListener(this);
     }
 
     @ReactMethod
@@ -72,18 +76,44 @@ public class PianoSdkModule extends ReactContextBaseJavaModule implements Activi
             currentActivity.startActivityForResult(intent, PIANO_ID_REQUEST_CODE);
         } catch (ActivityNotFoundException e) {
             e.printStackTrace();
-            responseHelper.invokeError(callback, e.getMessage());
+            responseHelper.invokeError(callback, "Cannot launch Piano ID");
         }
     }
 
+    @ReactMethod
+    public void signOut(@Nullable String accessToken, final Callback callback) {
+        if (accessToken != null) {
+            PianoId.signOut(accessToken);
+        } else {
+            PianoId.signOut("temporaryAccessToken");
+        }
+
+        CookieManager cookieManager = CookieManager.getInstance();
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+            CookieSyncManager cookieSyncManager = CookieSyncManager.createInstance(reactContext);
+            cookieSyncManager.startSync();
+            cookieManager.removeAllCookie();
+            cookieSyncManager.stopSync();
+        } else {
+            cookieManager.removeAllCookies(null);
+        }
+
+        pianoClient.setAccessToken(null);
+        
+        responseHelper.cleanResponse();
+        responseHelper.invokeResponse(callback);
+    }
+
     @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+    public void onActivityResult(Activity activity, int requestCode, int resultCode, Intent data) {
         if (requestCode != PIANO_ID_REQUEST_CODE) {
             return;
         }
 
+        responseHelper.cleanResponse();
+
         // user cancelled Authorization process
-        if (resultCode == Activity.RESULT_CANCELED) {
+        if (resultCode == activity.RESULT_CANCELED) {
             responseHelper.invokeCancel(callback);
             callback = null;
             return;
@@ -102,4 +132,7 @@ public class PianoSdkModule extends ReactContextBaseJavaModule implements Activi
         responseHelper.invokeResponse(callback);
         callback = null;
     }
+
+    @Override
+    public void onNewIntent(Intent intent) { }
 }
