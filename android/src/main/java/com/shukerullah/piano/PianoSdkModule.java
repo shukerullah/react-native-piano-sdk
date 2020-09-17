@@ -49,9 +49,9 @@ public class PianoSdkModule extends ReactContextBaseJavaModule implements Activi
     }
 
     @ReactMethod
-    void init(String pianoAID, String pianoEndPoint, @Nullable String facebookAppId) {
-        pianoClient = new PianoClient(reactContext, pianoAID, pianoEndPoint);
-        PianoIdClient pianoIdClient = PianoId.init(pianoEndPoint, pianoAID).with(new GoogleOAuthProvider());
+    void init(String pianoAID, String pianoEndpoint, @Nullable String facebookAppId) {
+        pianoClient = new PianoClient(reactContext, pianoAID, pianoEndpoint);
+        PianoIdClient pianoIdClient = PianoId.init(pianoEndpoint, pianoAID).with(new GoogleOAuthProvider());
         if(facebookAppId != null) {
             FacebookSdk.setApplicationId(facebookAppId);
             FacebookSdk.sdkInitialize(reactContext);

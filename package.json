@@ -1,7 +1,7 @@
 {
   "name": "react-native-piano-sdk",
   "title": "React Native Piano Sdk",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "React Native Piano Sdk",
   "main": "index.js",
   "scripts": {
@@ -29,6 +29,7 @@
   "homepage": "https://github.com/shukerullah/react-native-piano-sdk#readme",
   "peerDependencies": {
     "react": "^16.8.1",
+    "apisauce": "^1.1.1",
     "react-native": ">=0.60.0-rc.0 <1.0.x"
   },
   "devDependencies": {

@@ -30,4 +30,6 @@ PianoSdk.signIn((response) => {
 PianoSdk.signOut(() => {
   // TODO: What to do with signOut?
 });
+
+const user = await PianoSdk.get(aid, uid, api_token);
 ```
