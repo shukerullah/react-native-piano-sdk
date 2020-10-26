@@ -50,8 +50,9 @@ repositories {
 dependencies {
     //noinspection GradleDynamicVersion
     implementation 'com.facebook.react:react-native:+'  // From node_modules
-    implementation 'io.piano.android:api:2.0.0-beta01'
-    implementation 'io.piano.android:id:2.0.0-beta01'
-    implementation 'io.piano.android:id-oauth-google:2.0.0-beta01'
-    implementation 'io.piano.android:id-oauth-facebook:2.0.0-beta01'
+    implementation 'io.piano.android:id:2.0.1'
+    implementation 'io.piano.android:composer:2.0.1'
+    implementation 'io.piano.android:composer-show-template:2.0.1'
+    implementation 'io.piano.android:id-oauth-facebook:2.0.1'
+    implementation 'io.piano.android:id-oauth-google:2.0.1'
 }

@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.webkit.CookieManager;
 import android.webkit.CookieSyncManager;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.facebook.FacebookSdk;
@@ -16,8 +17,10 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.Callback;
 
-import io.piano.android.api.PianoClient;
+import org.jetbrains.annotations.NotNull;
+
 import io.piano.android.id.PianoId;
+import io.piano.android.id.PianoIdCallback;
 import io.piano.android.id.PianoIdClient;
 import io.piano.android.id.PianoIdException;
 import io.piano.android.id.facebook.FacebookOAuthProvider;
@@ -31,8 +34,6 @@ public class PianoSdkModule extends ReactContextBaseJavaModule implements Activi
     private final int PIANO_ID_REQUEST_CODE = 786;
 
     private final ReactApplicationContext reactContext;
-
-    private PianoClient pianoClient;
 
     protected Callback callback;
 
@@ -50,8 +51,19 @@ public class PianoSdkModule extends ReactContextBaseJavaModule implements Activi
 
     @ReactMethod
     void init(String pianoAID, String pianoEndpoint, @Nullable String facebookAppId) {
-        pianoClient = new PianoClient(reactContext, pianoAID, pianoEndpoint);
-        PianoIdClient pianoIdClient = PianoId.init(pianoEndpoint, pianoAID).with(new GoogleOAuthProvider());
+        PianoIdClient pianoIdClient = PianoId.init(pianoEndpoint, pianoAID)
+                .with(new PianoIdCallback<PianoIdToken>() {
+                    @Override
+                    public void onSuccess(PianoIdToken data) {
+                        // TODO: Add Success Callback
+                    }
+                    @Override
+                    public void onFailure(PianoIdException exception) {
+                        // TODO: Add Failure Callback
+                        // showError(exception);
+                    }
+                })
+                .with(new GoogleOAuthProvider());
         if(facebookAppId != null) {
             FacebookSdk.setApplicationId(facebookAppId);
             FacebookSdk.sdkInitialize(reactContext);
@@ -82,11 +94,19 @@ public class PianoSdkModule extends ReactContextBaseJavaModule implements Activi
 
     @ReactMethod
     public void signOut(@Nullable String accessToken, final Callback callback) {
-        if (accessToken != null) {
-            PianoId.signOut(accessToken);
-        } else {
-            PianoId.signOut("temporaryAccessToken");
-        }
+        PianoIdCallback<Object> pianoIdCallback = new PianoIdCallback<Object>() {
+            @Override
+            public void onSuccess(Object data) {
+                responseHelper.cleanResponse();
+                responseHelper.invokeResponse(callback);
+            }
+
+            @Override
+            public void onFailure(@NotNull PianoIdException exception) {
+                responseHelper.invokeError(callback, exception.getMessage());
+            }
+        };
+        PianoId.signOut(accessToken != null ? accessToken : "tmp", PianoIdCallback.asResultCallback(pianoIdCallback));
 
         CookieManager cookieManager = CookieManager.getInstance();
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
@@ -97,11 +117,21 @@ public class PianoSdkModule extends ReactContextBaseJavaModule implements Activi
         } else {
             cookieManager.removeAllCookies(null);
         }
+    }
 
-        pianoClient.setAccessToken(null);
-        
-        responseHelper.cleanResponse();
-        responseHelper.invokeResponse(callback);
+    @ReactMethod
+    public void refreshToken(String refreshToken, final Callback callback) {
+        PianoId.refreshToken(refreshToken, PianoIdCallback.asResultCallback(new PianoIdCallback<PianoIdToken>() {
+            @Override
+            public void onSuccess(@NonNull PianoIdToken data) {
+                responseHelper.cleanResponse();
+                responseHelper.invokeResponse(callback);
+            }
+            @Override
+            public void onFailure(@NotNull PianoIdException exception) {
+                responseHelper.invokeError(callback, exception.getMessage());
+            }
+        }));
     }
 
     @Override
@@ -120,7 +150,7 @@ public class PianoSdkModule extends ReactContextBaseJavaModule implements Activi
         }
 
         try {
-            PianoIdToken token = PianoId.getResultFromIntent(data);
+            PianoIdToken token = PianoId.getPianoIdTokenResult(data);
             responseHelper.putString("accessToken", token.accessToken);
             responseHelper.putString("expiresIn", token.expiresIn.toString());
             responseHelper.putString("refreshToken", token.refreshToken);
