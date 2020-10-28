@@ -9,20 +9,18 @@ Pod::Spec.new do |s|
   s.description  = <<-DESC
                   react-native-piano-sdk
                    DESC
-  s.homepage     = "https://github.com/github_account/react-native-piano-sdk"
+  s.homepage     = "https://github.com/shukerullah/react-native-piano-sdk"
   # brief license entry:
   s.license      = "MIT"
   # optional - use expanded license entry instead:
   # s.license    = { :type => "MIT", :file => "LICENSE" }
-  s.authors      = { "Your Name" => "yourname@email.com" }
+  s.authors      = { "Pir Shukarullah Shah" => "shuker_rashdi@yahoo.com" }
   s.platforms    = { :ios => "9.0" }
-  s.source       = { :git => "https://github.com/github_account/react-native-piano-sdk.git", :tag => "#{s.version}" }
+  s.source       = { :git => "https://github.com/shukerullah/react-native-piano-sdk.git", :tag => "#{s.version}" }
 
   s.source_files = "ios/**/*.{h,m,swift}"
   s.requires_arc = true
 
   s.dependency "React"
-  # ...
-  # s.dependency "..."
 end
 

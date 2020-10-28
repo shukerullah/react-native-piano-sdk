@@ -1,9 +1,9 @@
 package com.shukerullah.piano;
 
-import android.os.Build;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.os.Build;
 import android.webkit.CookieManager;
 import android.webkit.CookieSyncManager;
 import android.webkit.JavascriptInterface;
@@ -14,20 +14,25 @@ import androidx.fragment.app.FragmentActivity;
 
 import com.facebook.FacebookSdk;
 import com.facebook.react.bridge.ActivityEventListener;
+import com.facebook.react.bridge.Arguments;
+import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
-import com.facebook.react.bridge.Callback;
+import com.facebook.react.bridge.ReadableArray;
+import com.facebook.react.bridge.ReadableMap;
+import com.facebook.react.bridge.ReadableMapKeySetIterator;
+import com.facebook.react.bridge.ReadableType;
+import com.facebook.react.bridge.WritableMap;
 
 import org.jetbrains.annotations.NotNull;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Iterator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import io.piano.android.composer.Composer;
 import io.piano.android.composer.listeners.EventTypeListener;
@@ -40,6 +45,7 @@ import io.piano.android.composer.listeners.UserSegmentListener;
 import io.piano.android.composer.model.CustomParameters;
 import io.piano.android.composer.model.ExperienceRequest;
 import io.piano.android.composer.model.events.EventType;
+import io.piano.android.composer.model.events.UserSegment;
 import io.piano.android.composer.showtemplate.ComposerJs;
 import io.piano.android.composer.showtemplate.ShowTemplateController;
 import io.piano.android.id.PianoId;
@@ -60,9 +66,7 @@ public class PianoSdkModule extends ReactContextBaseJavaModule implements Activi
 
     private ShowTemplateController showTemplateController;
 
-    protected Callback callback;
-
-    private ResponseHelper responseHelper = new ResponseHelper();
+    private Callback callback;
 
     public PianoSdkModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -75,18 +79,16 @@ public class PianoSdkModule extends ReactContextBaseJavaModule implements Activi
     }
 
     @ReactMethod
-    void init(String pianoAID, String pianoEndpoint, @Nullable String facebookAppId) {
-        PianoIdClient pianoIdClient = PianoId.init(pianoEndpoint, pianoAID)
+    public void init(@NonNull String aid, @NonNull String endpoint, @Nullable String facebookAppId, @Nullable Callback callback) {
+        PianoIdClient pianoIdClient = PianoId.init(endpoint, aid)
                 .with(new PianoIdCallback<PianoIdToken>() {
                     @Override
                     public void onSuccess(PianoIdToken token) {
-                        Composer.getInstance().userToken(token.accessToken);
-                        // TODO: Add Success Callback
+                        callback.invoke(token);
                     }
                     @Override
                     public void onFailure(PianoIdException exception) {
-                        // TODO: Add Failure Callback
-                        // showError(exception);
+                        callback.invoke(exception);
                     }
                 })
                 .with(new GoogleOAuthProvider());
@@ -95,46 +97,254 @@ public class PianoSdkModule extends ReactContextBaseJavaModule implements Activi
             FacebookSdk.sdkInitialize(reactContext);
             pianoIdClient.with(new FacebookOAuthProvider());
         }
-        Composer.init(reactContext, pianoAID, pianoEndpoint);
-        reactContext.addActivityEventListener(this);
+        Composer.init(reactContext, aid, endpoint);
     }
 
     @ReactMethod
-    public void signIn(final Callback callback) {
-        Activity currentActivity = getCurrentActivity();
-        if (currentActivity == null) {
-            responseHelper.invokeError(callback, "Can't find current Activity");
+    public void signIn(@Nullable Callback callback) {
+        try {
+            Activity currentActivity = getCurrentActivity();
+            if (currentActivity == null) {
+                throw new ActivityNotFoundException();
+            }
+            this.callback = callback;
+            Intent intent = PianoId.signIn().widget(PianoId.WIDGET_LOGIN).getIntent(reactContext);
+            currentActivity.startActivityForResult(intent, PIANO_ID_REQUEST_CODE);
+        } catch (ActivityNotFoundException exception) {
+            callback.invoke(exception);
+        }
+    }
+
+    @ReactMethod
+    public void register(@Nullable Callback callback) {
+        try {
+            Activity currentActivity = getCurrentActivity();
+            if (currentActivity == null) {
+                throw new ActivityNotFoundException();
+            }
+            this.callback = callback;
+            Intent intent = PianoId.signIn().widget(PianoId.WIDGET_REGISTER).getIntent(reactContext);
+            currentActivity.startActivityForResult(intent, PIANO_ID_REQUEST_CODE);
+        } catch (ActivityNotFoundException exception) {
+            callback.invoke(exception);
+        }
+    }
+
+    @ReactMethod
+    public void signOut(@Nullable String accessToken, @Nullable Callback callback) {
+        PianoId.signOut(accessToken != null ? accessToken : "tmp", PianoIdCallback.asResultCallback(new PianoIdCallback<Object>() {
+            @Override
+            public void onSuccess(Object data) {
+                deleteCookies();
+                callback.invoke(data);
+                onAccessToken(null);
+            }
+            @Override
+            public void onFailure(PianoIdException exception) {
+                callback.invoke(exception);
+            }
+        }));
+    }
+
+    @ReactMethod
+    public void refreshToken(@Nullable String refreshToken, @Nullable Callback callback) {
+        PianoId.refreshToken(refreshToken, PianoIdCallback.asResultCallback(new PianoIdCallback<PianoIdToken>() {
+            @Override
+            public void onSuccess(PianoIdToken token) {
+                callback.invoke(token);
+                onAccessToken(token.accessToken);
+            }
+            @Override
+            public void onFailure(PianoIdException exception) {
+                callback.invoke(exception);
+            }
+        }));
+    }
+
+    @ReactMethod
+    public void setUserToken(@Nullable String accessToken) {
+        Composer.getInstance().userToken(accessToken);
+    }
+
+    @ReactMethod
+    public void setGaClientId(@NonNull String gaClientId) {
+        Composer.getInstance().gaClientId(gaClientId);
+    }
+
+    @ReactMethod
+    public void getExperience(@NonNull WritableMap map,
+                              @Nullable Callback experienceExecuteListener,
+                              @Nullable Callback experienceExceptionListener,
+                              @Nullable Callback meterListener,
+                              @Nullable Callback nonSiteListener,
+                              @Nullable Callback showLoginListener,
+                              @Nullable Callback userSegmentListener,
+                              @Nullable Callback showTemplateListener,
+                              @Nullable Callback showTemplateCustomEvent,
+                              @Nullable Callback showTemplateLogin) {
+        ExperienceRequest.Builder builder = new ExperienceRequest.Builder();
+        ReadableMapKeySetIterator iterator = map.keySetIterator();
+        while (iterator.hasNextKey()) {
+            String key = iterator.nextKey();
+            if(key.equals("contentCreated")) {
+                builder.contentCreated(map.getString("contentCreated"));
+            } else if(key.equals("contentCreated")) {
+                builder.contentAuthor(map.getString("contentAuthor"));
+            } else if(key.equals("contentIsNative")) {
+                builder.contentIsNative(map.getBoolean("contentIsNative"));
+            } else if(key.equals("contentSection")) {
+                builder.contentSection(map.getString("contentSection"));
+            } else if(key.equals("customParams")) {
+                CustomParameters customParameters = new CustomParameters();
+                ReadableMap readableMap = map.getMap(key);
+                ReadableMapKeySetIterator cpIterator = readableMap.keySetIterator();
+                while (cpIterator.hasNextKey()) {
+                    String cpKey = cpIterator.nextKey();
+                    if(cpKey.equals("content")) {
+                        _Object _object = getObject(readableMap.getMap(cpKey));
+                        customParameters.content(_object.key, _object.value);
+                    } else if(cpKey.equals("contents")) {
+                        ReadableArray array = readableMap.getArray(cpKey);
+                        for (int i=0; i<array.size(); i++) {
+                            _Object _object = getObject(array.getMap(i).getMap(cpKey));
+                            customParameters.content(_object.key, _object.value);
+                        }
+                    } else if(cpKey.equals("request")) {
+                        _Object _object = getObject(readableMap.getMap(cpKey));
+                        customParameters.request(_object.key, _object.value);
+                    } else if(cpKey.equals("requests")) {
+                        ReadableArray array = readableMap.getArray(cpKey);
+                        for (int i=0; i<array.size(); i++) {
+                            _Object _object = getObject(array.getMap(i).getMap(cpKey));
+                            customParameters.request(_object.key, _object.value);
+                        }
+                    } else if(cpKey.equals("user")) {
+                        _Object _object = getObject(readableMap.getMap(cpKey));
+                        customParameters.user(_object.key, _object.value);
+                    } else if(cpKey.equals("user")) {
+                        ReadableArray array = readableMap.getArray(cpKey);
+                        for (int i=0; i<array.size(); i++) {
+                            _Object _object = getObject(array.getMap(i).getMap(cpKey));
+                            customParameters.user(_object.key, _object.value);
+                        }
+                    }
+                }
+                builder.customParams(customParameters);
+            } else if(key.equals("customVariable")) {
+                _Object _object = getObject(map.getMap("customVariable"));
+                builder.customVariable(_object.key, _object.value);
+            } else if(key.equals("customVariables")) {
+                builder.customVariables(getArrayObject(map.getArray("customVariables")).getArrayObject());
+            } else if(key.equals("debug")) {
+                builder.debug(map.getBoolean("debug"));
+            } else if(key.equals("debug")) {
+                builder.debug(map.getBoolean("debug"));
+            }  else if(key.equals("gaClientId")) {
+                // builder.gaClientId(map.getString("gaClientId"));
+                setGaClientId(map.getString("gaClientId"));
+            } else if(key.equals("referrer")) {
+                builder.referer(map.getString("referrer"));
+            } else if(key.equals("tag")) {
+                builder.tag(map.getString("tag"));
+            } else if(key.equals("tags")) {
+                builder.tags(getArray(map.getArray("tags")));
+            } else if(key.equals("url")) {
+                builder.url(map.getString("url"));
+            } else if(key.equals("userToken")) {
+                // builder.userToken(map.getString("userToken"));
+                setUserToken(map.getString("userToken"));
+            } else if(key.equals("zone")) {
+                builder.zone(map.getString("zone"));
+            }
+        }
+        ExperienceRequest request = builder.build();
+        Collection<EventTypeListener<? extends EventType>> listeners = Arrays.asList(
+                (ExperienceExecuteListener) event -> {
+                    if(experienceExecuteListener != null) {
+                        experienceExecuteListener.invoke(event);
+                    }
+                },
+                (MeterListener) event -> {
+                    if(meterListener != null) {
+                        meterListener.invoke(event);
+                    }
+                },
+                (NonSiteListener) event -> {
+                    if(nonSiteListener != null) {
+                        nonSiteListener.invoke(event);
+                    }
+                },
+                (ShowLoginListener) event -> {
+                    if(showLoginListener != null) {
+                        showLoginListener.invoke(event);
+                    }
+                },
+                (ShowTemplateListener) event -> {
+                    if(showTemplateListener != null) {
+                        showTemplateListener.invoke(event);
+                    }
+                    showTemplateController = ShowTemplateController.show((FragmentActivity)getCurrentActivity(), event, new ComposerJs() {
+                        @JavascriptInterface
+                        @Override
+                        public void customEvent(@NonNull String eventData) {
+                            if(showTemplateCustomEvent != null) {
+                                showTemplateCustomEvent.invoke(eventData);
+                            }
+                        }
+                        @JavascriptInterface
+                        @Override
+                        public void login(@NonNull String eventData) {
+                            if(showTemplateLogin != null) {
+                                showTemplateLogin.invoke(eventData);
+                            }
+                        }
+                    });
+                },
+                (UserSegmentListener) event -> {
+                    if(userSegmentListener != null) {
+                        userSegmentListener.invoke(event);
+                    }
+                }
+        );
+        Composer.getInstance().getExperience(request, listeners, exception -> {
+            if(experienceExceptionListener != null) {
+                experienceExceptionListener.invoke(exception);
+            }
+        });
+    }
+
+    @Override
+    public void onActivityResult(Activity activity, int requestCode, int resultCode, Intent data) {
+        if (requestCode != PIANO_ID_REQUEST_CODE) {
             return;
         }
 
-        this.callback = callback;
+        if(requestCode == activity.RESULT_OK) {
+            PianoIdToken token = PianoId.getPianoIdTokenResult(data);
+            onAccessToken(token.accessToken);
+            if(callback != null) {
+                callback.invoke(token);
+            }
+            return;
+        }
 
-        Intent intent = PianoId.signIn().widget(PianoId.WIDGET_LOGIN).getIntent(reactContext);
-
-        try {
-            currentActivity.startActivityForResult(intent, PIANO_ID_REQUEST_CODE);
-        } catch (ActivityNotFoundException e) {
-            e.printStackTrace();
-            responseHelper.invokeError(callback, "Cannot launch Piano ID");
+        WritableMap event = Arguments.createMap();
+        String message = requestCode == activity.RESULT_CANCELED ? "User canceled OAuth" : "Something went";
+        event.putString("message", message);
+        event.putInt("resultCode", resultCode);
+        if(callback != null) {
+            callback.invoke(event);
         }
     }
 
-    @ReactMethod
-    public void signOut(@Nullable String accessToken, final Callback callback) {
-        PianoIdCallback<Object> pianoIdCallback = new PianoIdCallback<Object>() {
-            @Override
-            public void onSuccess(Object data) {
-                responseHelper.cleanResponse();
-                responseHelper.invokeResponse(callback);
-            }
+    private void onAccessToken(@Nullable String accessToken) {
+        Composer.getInstance().userToken(accessToken);
+        if (showTemplateController != null && accessToken != null) {
+            showTemplateController.reloadWithToken(accessToken);
+        }
+    }
 
-            @Override
-            public void onFailure(@NotNull PianoIdException exception) {
-                responseHelper.invokeError(callback, exception.getMessage());
-            }
-        };
-        PianoId.signOut(accessToken != null ? accessToken : "tmp", PianoIdCallback.asResultCallback(pianoIdCallback));
-
+    private void deleteCookies() {
         CookieManager cookieManager = CookieManager.getInstance();
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
             CookieSyncManager cookieSyncManager = CookieSyncManager.createInstance(reactContext);
@@ -146,190 +356,76 @@ public class PianoSdkModule extends ReactContextBaseJavaModule implements Activi
         }
     }
 
-    @ReactMethod
-    public void refreshToken(String refreshToken, final Callback callback) {
-        PianoId.refreshToken(refreshToken, PianoIdCallback.asResultCallback(new PianoIdCallback<PianoIdToken>() {
-            @Override
-            public void onSuccess(@NonNull PianoIdToken data) {
-                responseHelper.cleanResponse();
-                responseHelper.invokeResponse(callback);
-            }
-            @Override
-            public void onFailure(@NotNull PianoIdException exception) {
-                responseHelper.invokeError(callback, exception.getMessage());
-            }
-        }));
+    @NotNull
+    private ArrayObject getArrayObject(@NotNull ReadableArray readableArray) {
+        ArrayObject arrayObject = new ArrayObject();
+        for(int i=0; i<readableArray.size(); i++) {
+            _Object _object = getObject(readableArray.getMap(i));
+            arrayObject.addObject(_object);
+        }
+        return arrayObject;
     }
 
-    @ReactMethod
-    public void setUserToken(String accessToken) {
-        Composer.getInstance().userToken(accessToken);
+    @NotNull
+    private _Object getObject(@NotNull ReadableMap readableMap) {
+        ReadableMapKeySetIterator iterator = readableMap.keySetIterator();
+        while (iterator.hasNextKey()) {
+            String key = iterator.nextKey();
+            return new _Object(key, readableMap.getString(key));
+        }
+        return new _Object();
     }
 
-    @ReactMethod
-    public void getExperience(String config, final Callback callback) {
-        try {
-            this.callback = callback;
-            ExperienceRequest.Builder builder = new ExperienceRequest.Builder();
-            JSONObject json = new JSONObject(config);
-            if(json.has("debug")) {
-                builder.debug(json.getBoolean("debug"));
-            }
-            if(json.has("zone")) {
-                builder.zone(json.getString("zone"));
-            }
-            if(json.has("referer")) {
-                builder.referer(json.getString("referer"));
-            }
-            if(json.has("url")) {
-                builder.url(json.getString("url"));
-            }
-            if(json.has("tag")) {
-                builder.tag(json.getString("tag"));
-            }
-            if(json.has("tags")) {
-                JSONArray tagsJSON = json.getJSONArray("tags");
-                List<String> tags = new ArrayList<String>();
-                for(int i = 0; i < tagsJSON.length(); i++){
-                    tags.add(tagsJSON.get(i).toString());
-                }
-                builder.tags(tags);
-            }
-            if(json.has("customParameters")) {
-                CustomParameters customParameters = new CustomParameters();
-                JSONObject params = json.getJSONObject("customParameters");
-                Iterator<String> keys = params.keys();
-                while (keys.hasNext()) {
-                    String key = keys.next();
-                    if(key.equals("request")) {
-                        String [] values = getValues(params.getJSONObject(key));
-                        customParameters.request(values[0], values[1]);
-                    } else if(key.equals("user")) {
-                        String [] values = getValues(params.getJSONObject(key));
-                        customParameters.user(values[0], values[1]);
-                    } else if(key.equals("content")) {
-                        String [] values = getValues(params.getJSONObject(key));
-                        customParameters.content(values[0], values[1]);
-                    } else if(key.equals("contents")) {
-                        JSONArray contents =  params.getJSONArray(key);
-                        for(int i=0; i<contents.length(); i++) {
-                            String [] values = getValues(contents.getJSONObject(i));
-                            customParameters.content(values[0], values[1]);
-                        }
-                    }
-                }
-                builder.customParams(customParameters);
-                ExperienceRequest request = builder.build();
+    @NotNull
+    private List<String> getArray(@NotNull ReadableArray readableArray) {
+        List<String> list = new ArrayList<String>();
+        for(int i=0; i<readableArray.size(); i++) {
+            list.add(readableArray.getString(i));
+        }
+        return list;
+    }
 
-                Collection<EventTypeListener<? extends EventType>> listeners = Arrays.asList(
-                        (ExperienceExecuteListener) event -> {
-                            responseHelper.putString("type", "ExperienceExecuteListener");
-                            responseHelper.putString("event", event.toString());
-                            responseHelper.invokeResponse(callback);
+    private class ArrayObject {
+        public Map<String, String> arrayObject = new HashMap<>();
 
-                        },
-                        (UserSegmentListener) event -> {
-                            responseHelper.putString("type", "UserSegmentListener");
-                            responseHelper.putString("event", event.toString());
-                            responseHelper.invokeResponse(callback);
-                        },
-                        (ShowLoginListener) event -> {
-                            responseHelper.putString("type", "UserSegmentListener");
-                            responseHelper.putString("event", event.toString());
-                            responseHelper.invokeResponse(callback);
-                        },
-                        (MeterListener) event -> {
-                            responseHelper.putString("type", "UserSegmentListener");
-                            responseHelper.putString("event", event.toString());
-                            responseHelper.invokeResponse(callback);
-                        },
-                        (ShowTemplateListener) event -> {
-                            showTemplateController = ShowTemplateController.show( (FragmentActivity)getCurrentActivity(), event, new ComposerJs() {
-                                @JavascriptInterface
-                                @Override
-                                public void customEvent(@NonNull String eventData) {
-                                    responseHelper.putString("type", "ShowTemplateListener");
-                                    responseHelper.putString("sub", "CustomEvent");
-                                    responseHelper.putString("event", event.toString());
-                                    responseHelper.putString("eventData", eventData);
-                                    responseHelper.invokeResponse(callback);
-                                }
+        public Map<String, String> getArrayObject() {
+            return arrayObject;
+        }
 
-                                @JavascriptInterface
-                                @Override
-                                public void login(@NonNull String eventData) {
-                                    responseHelper.putString("type", "ShowTemplateListener");
-                                    responseHelper.putString("sub", "Login");
-                                    responseHelper.putString("event", event.toString());
-                                    responseHelper.putString("eventData", eventData);
-                                    responseHelper.invokeResponse(callback);
-                                }
-                            });
-                        },
-                        (NonSiteListener) event -> {
-                            responseHelper.putString("type", "NonSiteListener");
-                            responseHelper.putString("event", event.toString());
-                            responseHelper.invokeResponse(callback);
-                        }
-                );
-                Composer.getInstance().getExperience(request, listeners, exception -> {
-                    String error = exception.getCause() == null ? exception.getMessage() : exception.getCause().getMessage();
-                    responseHelper.invokeError(callback, error);
-                });
-            }
-        } catch (Exception e) {
-            responseHelper.invokeError(callback, e.getMessage());
+        public void addObject(_Object object) {
+            arrayObject.put(object.key, object.value);
         }
     }
 
-    @Override
-    public void onActivityResult(Activity activity, int requestCode, int resultCode, Intent data) {
-        if (requestCode != PIANO_ID_REQUEST_CODE) {
-            return;
+    private class _Object {
+        private String key;
+        private String value;
+
+        public _Object() {
         }
 
-        responseHelper.cleanResponse();
-
-        // user cancelled Authorization process
-        if (resultCode == activity.RESULT_CANCELED) {
-            responseHelper.invokeCancel(callback);
-            callback = null;
-            return;
+        public _Object(String key, String value) {
+            this.key = key;
+            this.value = value;
         }
 
-        try {
-            PianoIdToken token = PianoId.getPianoIdTokenResult(data);
-            responseHelper.putString("accessToken", token.accessToken);
-            responseHelper.putString("expiresIn", token.expiresIn.toString());
-            responseHelper.putString("refreshToken", token.refreshToken);
-
-            Composer.getInstance().userToken(token.accessToken);
-            if (showTemplateController != null) {
-                showTemplateController.reloadWithToken(token.accessToken);
-            }
-
-        } catch (PianoIdException e) {
-            e.printStackTrace();
-            responseHelper.putString("error", e.getMessage());
+        public String getKey() {
+            return key;
         }
 
-        responseHelper.invokeResponse(callback);
-        callback = null;
+        public void setKey(String key) {
+            this.key = key;
+        }
+
+        public String getValue() {
+            return value;
+        }
+
+        public void setValue(String value) {
+            this.value = value;
+        }
     }
 
     @Override
     public void onNewIntent(Intent intent) { }
-
-    private String[] getValues(JSONObject params) {
-        try {
-            Iterator<String> keys = params.keys();
-            while (keys.hasNext()) {
-                String key = keys.next();
-                return new String[]{key, params.getString(key)};
-            }
-        } catch (Exception e) {
-            responseHelper.invokeError(callback, e.getMessage());
-        }
-        return new String [] {};
-    }
 }

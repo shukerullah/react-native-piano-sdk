@@ -24,9 +24,14 @@ const PianoSdk = {
    * @param {string} endpoint - The Endpoint
    * @param {string} [facebookAppId=null] - Facebook App Id required for native Facebook sign on
    */
-  init(aid: string, endpoint: string, facebookAppId: string = null) {
+  init(
+    aid: string,
+    endpoint: string,
+    facebookAppId: string = null,
+    callback: Function = null
+  ) {
     createApi(endpoint);
-    PianoSdkModule.init(aid, endpoint, facebookAppId);
+    PianoSdkModule.init(aid, endpoint, facebookAppId, callback);
   },
 
   /**
@@ -39,29 +44,37 @@ const PianoSdk = {
   /**
    * The function signIn(). Sign in ID and it will return activeToken in a callback which can then be used through the application.
    *
-   * @param {responseCallback} [callback=() => {}] - A callback to run
+   * @param {responseCallback} [callback=null] - A callback to run
    */
-  signIn(callback = () => {}) {
-    PianoSdkModule.signIn(callback);
+  signIn(callback: Function = null) {
+    try {
+      PianoSdkModule.signIn(callback);
+    } catch (err) {
+      callback(err);
+    }
   },
 
   /**
    * The function signOut(). Sign out ID.
    *
    * @param {string} [accessToken=null]
-   * @param {responseCallback} [callback=() => {}] - A callback to run
+   * @param {responseCallback} [callback=null] - A callback to run
    */
-  signOut(accessToken: string = null, callback: Function = () => {}) {
-    PianoSdkModule.signOut(accessToken, callback);
+  signOut(accessToken: string = null, callback: Function = null) {
+    try {
+      PianoSdkModule.signOut(accessToken, callback);
+    } catch (err) {
+      callback(err);
+    }
   },
 
   /**
    * The function refreshToken(). Refresh token.
    *
    * @param {string} accessToken
-   * @param {responseCallback} [callback=() => {}] - A callback to run
+   * @param {responseCallback} [callback=null] - A callback to run
    */
-  refreshToken(accessToken: string, callback: Function = () => {}) {
+  refreshToken(accessToken: string, callback: Function = null) {
     PianoSdkModule.refreshToken(accessToken, callback);
   },
 
@@ -71,7 +84,7 @@ const PianoSdk = {
    * @param {string} accessToken
    */
   setUserToken(accessToken: string) {
-    PianoSdk.setUserToken(accessToken);
+    PianoSdkModule.setUserToken(accessToken);
   },
 
   /**
@@ -84,6 +97,46 @@ const PianoSdk = {
    */
   getUser(aid: string, uid: string, api_token: string) {
     return post(API.PUBLISHER_USER_GET, { aid, uid, api_token });
+  },
+
+  /**
+   * The function getExperience(). It's Piano Experience :D
+   *
+   * @param {*} config
+   * @param {responseCallback} [experienceExecuteListener=null] - A callback to run
+   * @param {responseCallback} [experienceExceptionListener=null] - A callback to run
+   * @param {responseCallback} [meterListener=null] - A callback to run
+   * @param {responseCallback} [nonSiteListener=null] - A callback to run
+   * @param {responseCallback} [showLoginListener=null] - A callback to run
+   * @param {responseCallback} [userSegmentListener=null] - A callback to run
+   * @param {responseCallback} [showTemplateListener=null] - A callback to run
+   * @param {responseCallback} [showTemplateCustomEvent=null] - A callback to run
+   * @param {responseCallback} [showTemplateLogin=null] - A callback to run
+   */
+  getExperience(
+    config: {},
+    experienceExecuteListener: Function = null,
+    experienceExceptionListener: Function = null,
+    meterListener: Function = null,
+    nonSiteListener: Function = null,
+    showLoginListener: Function = null,
+    userSegmentListener: Function = null,
+    showTemplateListener: Function = null,
+    showTemplateCustomEvent: Function = null,
+    showTemplateLogin: Function = null
+  ) {
+    PianoSdkModule.getExperience(
+      config,
+      experienceExecuteListener,
+      experienceExceptionListener,
+      meterListener,
+      nonSiteListener,
+      showLoginListener,
+      userSegmentListener,
+      showTemplateListener,
+      showTemplateCustomEvent,
+      showTemplateLogin
+    );
   },
 };
 
