@@ -12,7 +12,7 @@ React Native Piano Sdk
 
     yarn add react-native-piano-sdk
 
-### iOS
+### iOS \*\*\*
 
 _Underdevelopment, not supported at the moment._
 
@@ -32,4 +32,159 @@ PianoSdk.signOut(() => {
 });
 
 const user = await PianoSdk.get(aid, uid, api_token);
+```
+
+## Example
+
+```javascript
+import React from "react";
+import {
+  View,
+  Button,
+  ScrollView,
+  StyleSheet,
+  SafeAreaView,
+} from "react-native";
+import PianoSdk, { ENDPOINT } from "react-native-piano-sdk";
+
+import { Header, Colors } from "react-native/Libraries/NewAppScreen";
+
+const AID = "ADD YOUR AID";
+const FACEBOOK_AID = "ADD YOUR FACEBOOK APP ID";
+
+const styles = StyleSheet.create({
+  scrollView: {
+    backgroundColor: Colors.lighter,
+  },
+  body: {
+    backgroundColor: Colors.white,
+  },
+  sectionContainer: {
+    marginTop: 32,
+    paddingHorizontal: 24,
+  },
+});
+
+class App extends React.PureComponent {
+  unsubscribe;
+  constructor(props) {
+    super(props);
+    this.state = {
+      data: undefined,
+    };
+  }
+
+  componentDidMount() {
+    PianoSdk.init(AID, ENDPOINT.SANDBOX, FACEBOOK_AID);
+    this.unsubscribe = PianoSdk.addEventListener(this._onListener);
+  }
+
+  componentWillUnmount() {
+    this.unsubscribe();
+  }
+
+  _onListener = (response) => {
+    console.log("====onListener====");
+    console.log(response);
+  };
+
+  _onShowLoginCallback = (response) => {
+    console.log("====onShowLoginCallback====");
+    console.log(response);
+  };
+
+  _onTemplateCallback = (response) => {
+    console.log("====onTemplateCallback====");
+    console.log(response);
+  };
+
+  _signIn = () => {
+    PianoSdk.signIn((data) => {
+      this.setState({
+        data,
+      });
+    });
+  };
+
+  _register = () => {
+    PianoSdk.register((data) => {
+      this.setState({
+        data,
+      });
+    });
+  };
+
+  _getExperience = () => {
+    // accessToken: string
+    // contentIsNative: boolean
+    // debug: boolean
+    // url : string,
+    // contentAuthor: string,
+    // contentSection: string,
+    // tag: string,
+    // tags: Array<string>,
+    // zone: string
+    // referer: string
+    const config = {
+      debug: true,
+    };
+
+    PianoSdk.getExperience(
+      config,
+      this._onShowLoginCallback,
+      this._onTemplateCallback
+    );
+  };
+
+  _signOut = () => {
+    const accessToken = this.state.data ? this.state.data.accessToken : "";
+    PianoSdk.signOut(accessToken, () => {
+      this.setState({
+        data: undefined,
+      });
+    });
+  };
+
+  render() {
+    const { data } = this.state;
+    return (
+      <SafeAreaView>
+        <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
+          style={styles.scrollView}
+        >
+          <Header />
+          <View style={styles.body}>
+            {!data ? (
+              <View style={styles.sectionContainer}>
+                <Button title="Sign In" onPress={this._signIn} />
+              </View>
+            ) : null}
+
+            {!data ? (
+              <View style={styles.sectionContainer}>
+                <Button title="Register" onPress={this._register} />
+              </View>
+            ) : null}
+
+            {data ? (
+              <View style={styles.sectionContainer}>
+                <Button title="Sign Out" onPress={this._signOut} />
+              </View>
+            ) : null}
+
+            <View style={styles.sectionContainer}>
+              <Button
+                title="Execute Experience"
+                onPress={this._getExperience}
+              />
+            </View>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+}
+
+export default App;
 ```

@@ -1,4 +1,4 @@
-import { NativeModules } from "react-native";
+import { NativeModules, DeviceEventEmitter } from "react-native";
 import { createApi, post } from "./fetch";
 
 const API_VERSION = "/api/v3";
@@ -9,6 +9,21 @@ const API = {
 
 const PianoSdkModule = NativeModules.PianoSdk;
 
+const PIANO_LISTENER = "PIANO_LISTENER";
+
+export const LISTENER = {
+  EXPERIENCE_EXECUTE: "experienceExecuteListener",
+  METER: "meterListener",
+  NON_STIE: "nonSiteListener",
+  SHOW_LOGIN: "showLoginListener",
+  SHOW_TEMPLATE: "showTemplateListener",
+  TEMPLATE_EVENT: "templateCustomEvent",
+  USER_SEGMENT: "userSegmentListener",
+  EXPERIENCE_EXCEPTION: "experienceExceptionListener",
+  LOGIN: "login",
+  REGISTER: "register",
+};
+
 export const ENDPOINT = {
   SANDBOX: "https://sandbox.tinypass.com/",
   PRODUCTION: "https://buy.tinypass.com/",
@@ -18,11 +33,19 @@ export const ENDPOINT = {
 
 const PianoSdk = {
   /**
+   * Callback that handles the response
+   *
+   * @callback responseCallback
+   * @param {*} response - The callback that handles the response
+   */
+
+  /**
    * The function init(). Initialize ID and Composer
    *
    * @param {string} aid - The Application ID
    * @param {string} endpoint - The Endpoint
    * @param {string} [facebookAppId=null] - Facebook App Id required for native Facebook sign on
+   * @param {responseCallback} [callback=null] - A callback to run
    */
   init(
     aid: string,
@@ -35,13 +58,6 @@ const PianoSdk = {
   },
 
   /**
-   * Callback that handles the response
-   *
-   * @callback responseCallback
-   * @param {*} response - The callback that handles the response
-   */
-
-  /**
    * The function signIn(). Sign in ID and it will return activeToken in a callback which can then be used through the application.
    *
    * @param {responseCallback} [callback=null] - A callback to run
@@ -49,6 +65,19 @@ const PianoSdk = {
   signIn(callback: Function = null) {
     try {
       PianoSdkModule.signIn(callback);
+    } catch (err) {
+      callback(err);
+    }
+  },
+
+  /**
+   * The function register(). Register in ID and it will return activeToken in a callback which can then be used through the application.
+   *
+   * @param {responseCallback} [callback=null] - A callback to run
+   */
+  register(callback: Function = null) {
+    try {
+      PianoSdkModule.register(callback);
     } catch (err) {
       callback(err);
     }
@@ -88,6 +117,29 @@ const PianoSdk = {
   },
 
   /**
+   * The function setGaClientId(). Set Google Analytics Client ID.
+   *
+   * @param {string} gaClientId
+   */
+  setGaClientId(gaClientId: string) {
+    PianoSdkModule.setGaClientId(gaClientId);
+  },
+
+  /**
+   * The function clearStoredData(). Clear Composer data.
+   */
+  clearStoredData() {
+    PianoSdkModule.clearStoredData();
+  },
+
+  /**
+   * The function clearStoredData(). Clear Composer data.
+   */
+  closeTemplateController() {
+    PianoSdkModule.closeTemplateController();
+  },
+
+  /**
    * The function getUser(). Gets a user details.
    *
    * @param {string} aid - The Application ID
@@ -100,43 +152,42 @@ const PianoSdk = {
   },
 
   /**
+   * Callback that handle event listener.
+   *
+   * @callback eventCallback
+   * @param {string} eventName - A name of event.
+   * @param {*} event - An event
+   */
+
+  /**
    * The function getExperience(). It's Piano Experience :D
    *
    * @param {*} config
-   * @param {responseCallback} [experienceExecuteListener=null] - A callback to run
-   * @param {responseCallback} [experienceExceptionListener=null] - A callback to run
-   * @param {responseCallback} [meterListener=null] - A callback to run
-   * @param {responseCallback} [nonSiteListener=null] - A callback to run
-   * @param {responseCallback} [showLoginListener=null] - A callback to run
-   * @param {responseCallback} [userSegmentListener=null] - A callback to run
-   * @param {responseCallback} [showTemplateListener=null] - A callback to run
-   * @param {responseCallback} [showTemplateCustomEvent=null] - A callback to run
-   * @param {responseCallback} [showTemplateLogin=null] - A callback to run
+   * @param {eventCallback} [showLoginCallback] - A callback to run
+   * @param {eventCallback} [showTemplateCallback] - A callback to run
    */
   getExperience(
     config: {},
-    experienceExecuteListener: Function = null,
-    experienceExceptionListener: Function = null,
-    meterListener: Function = null,
-    nonSiteListener: Function = null,
-    showLoginListener: Function = null,
-    userSegmentListener: Function = null,
-    showTemplateListener: Function = null,
-    showTemplateCustomEvent: Function = null,
-    showTemplateLogin: Function = null
+    showLoginCallback = () => {},
+    showTemplateCallback = () => {}
   ) {
     PianoSdkModule.getExperience(
       config,
-      experienceExecuteListener,
-      experienceExceptionListener,
-      meterListener,
-      nonSiteListener,
-      showLoginListener,
-      userSegmentListener,
-      showTemplateListener,
-      showTemplateCustomEvent,
-      showTemplateLogin
+      showLoginCallback,
+      showTemplateCallback
     );
+  },
+
+  /**
+   * The function addEventListener()
+   *
+   * @param {responseCallback} [callback] - A callback to run
+   */
+  addEventListener(callback = () => {}) {
+    const subscribe = DeviceEventEmitter.addListener(PIANO_LISTENER, callback);
+    return () => {
+      subscribe.remove();
+    };
   },
 };
 
