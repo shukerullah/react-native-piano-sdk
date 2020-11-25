@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.os.Build;
-import android.util.Log;
 import android.webkit.CookieManager;
 import android.webkit.CookieSyncManager;
 import android.webkit.JavascriptInterface;
@@ -23,7 +22,6 @@ import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.ReadableMapKeySetIterator;
-import com.facebook.react.bridge.ReadableType;
 import com.facebook.react.bridge.WritableArray;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
@@ -75,8 +73,6 @@ public class PianoSdkModule extends ReactContextBaseJavaModule implements Activi
 
     private final String PIANO_LISTENER_NAME = "PIANO_LISTENER";
 
-    private final String TAG = "PIANO";
-
     private final int PIANO_ID_REQUEST_CODE = 786;
 
     private final ReactApplicationContext reactContext;
@@ -110,13 +106,11 @@ public class PianoSdkModule extends ReactContextBaseJavaModule implements Activi
                     @Override
                     public void onSuccess(PianoIdToken pianoIdToken)
                     {
-                        Log.d(TAG, "pianoIdClient" + pianoIdToken.accessToken);
                         onAccessToken(pianoIdToken, callback);
                     }
                     @Override
                     public void onFailure(PianoIdException exception)
                     {
-                        Log.d(TAG, "pianoIdClient onFailure" + exception.getMessage());
                         invokeError(exception.getMessage(), callback);
                     }
                 })
@@ -369,7 +363,6 @@ public class PianoSdkModule extends ReactContextBaseJavaModule implements Activi
         cleanResponse();
         if(pianoIdToken != null && pianoIdToken.accessToken != null)
         {
-            Log.d(TAG, "onAccessToken" + pianoIdToken.accessToken);
             setUserToken(pianoIdToken.accessToken);
 
             response.putString("accessToken", pianoIdToken.accessToken);
@@ -377,7 +370,14 @@ public class PianoSdkModule extends ReactContextBaseJavaModule implements Activi
             response.putString("expiresIn", pianoIdToken.expiresIn.toString());
             response.putString("expiresInTimestamp", pianoIdToken.expiresInTimestamp + "");
         }
+
         invokeResponse(callback);
+
+        // Put this code in above condition
+        if (showTemplateController != null && pianoIdToken != null && pianoIdToken.accessToken != null)
+        {
+            showTemplateController.reloadWithToken(pianoIdToken.accessToken);
+        }
     }
 
     private void cleanResponse()
