@@ -54,7 +54,9 @@ const PianoSdk = {
     callback: Function = null
   ) {
     createApi(endpoint);
-    PianoSdkModule.init(aid, endpoint, facebookAppId, callback);
+    if (Platform.OS === "android") {
+      PianoSdkModule.init(aid, endpoint, facebookAppId, callback);
+    }
   },
 
   /**
