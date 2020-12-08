@@ -318,13 +318,8 @@ public class PianoSdkModule extends ReactContextBaseJavaModule implements Activi
                                 map.putString("eventData", eventData);
                                 sendEvent(map, null);
                             }
-                            @JavascriptInterface
-                            @Override
-                            public void close(@NonNull String eventData) {
-                                super.close(eventData);
-                            }
                         };
-                        showTemplateController = ShowTemplateController.show((FragmentActivity)getCurrentActivity(), event, composerJs);
+                        showTemplateController = ShowTemplateController.show((FragmentActivity) getCurrentActivity(), event, composerJs);
                     }
 
                     WritableMap map = Arguments.createMap();
@@ -369,15 +364,18 @@ public class PianoSdkModule extends ReactContextBaseJavaModule implements Activi
             response.putString("refreshToken", pianoIdToken.refreshToken);
             response.putString("expiresIn", pianoIdToken.expiresIn.toString());
             response.putString("expiresInTimestamp", pianoIdToken.expiresInTimestamp + "");
+
+            if (showTemplateController != null)
+            {
+                getCurrentActivity().runOnUiThread(new Runnable() {
+                    public void run() {
+                        showTemplateController.reloadWithToken(pianoIdToken.accessToken);
+                    }
+                });
+            }
         }
 
         invokeResponse(callback);
-
-        // Put this code in above condition
-        if (showTemplateController != null && pianoIdToken != null && pianoIdToken.accessToken != null)
-        {
-            showTemplateController.reloadWithToken(pianoIdToken.accessToken);
-        }
     }
 
     private void cleanResponse()
