@@ -1,10 +1,11 @@
 import { NativeModules, DeviceEventEmitter } from "react-native";
-import { createApi, post } from "./fetch";
+import { createApi, get, post } from "./fetch";
 
 const API_VERSION = "/api/v3";
 
 const API = {
   PUBLISHER_USER_GET: `${API_VERSION}/publisher/user/get`,
+  PUBLISHER_USER_UPDATE: `${API_VERSION}/publisher/user/update`,
 };
 
 const PianoSdkModule = NativeModules.PianoSdk;
@@ -140,15 +141,39 @@ const PianoSdk = {
   },
 
   /**
-   * The function getUser(). Gets a user details.
+   * The function getUser(). Gets a user.
    *
    * @param {string} aid - The Application ID
    * @param {string} uid - User's UID
    * @param {string} api_token - The API Token
-   * @returns User's first_name, last_name, email, personal_name, uid, image1, create_date, reset_password_email_sent, custom_fields
+   * @returns User
    */
   getUser(aid: string, uid: string, api_token: string) {
-    return post(API.PUBLISHER_USER_GET, { aid, uid, api_token });
+    return get(API.PUBLISHER_USER_GET, { aid, uid, api_token });
+  },
+
+  /**
+   * The function updateUser(). Updates a user.
+   *
+   * @param {string} aid - The Application ID
+   * @param {string} uid - User's UID
+   * @param {string} api_token - The API Token
+   * @param {Object} data - The data that you want to update
+   * @param {Object} customData - The custom data/fields that you want to update
+   * @returns User
+   */
+  updateUser(
+    aid: string,
+    uid: string,
+    api_token: string,
+    data: Object,
+    customData: Object
+  ) {
+    return post(
+      API.PUBLISHER_USER_UPDATE,
+      { aid, uid, api_token, ...data },
+      customData
+    );
   },
 
   /**

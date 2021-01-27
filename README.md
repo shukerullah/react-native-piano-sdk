@@ -24,15 +24,50 @@ import PianoSdk from "react-native-piano-sdk";
 PianoSdk.init(aid, endPoint, facebookAppId);
 
 PianoSdk.signIn((response) => {
-  // TODO: What to do with signIn?
+  // TODO: Do something on signIn.
+});
+
+PianoSdk.register((response) => {
+  // TODO: Do something on register.
 });
 
 PianoSdk.signOut(() => {
-  // TODO: What to do with signOut?
+  // TODO: Do something on signOut.
 });
 
-const user = await PianoSdk.get(aid, uid, api_token);
+/**
+ * The function getUser(). Gets a user.
+ *
+ * @param {string} aid - The Application ID
+ * @param {string} uid - User's UID
+ * @param {string} api_token - The API Token
+ * @returns User
+ */
+PianoSdk.getUser(aid, uid, api_token);
+
+// Example:
+const user = await PianoSdk.getUser(aid, uid, api_token);
+// TODO: What to do with user?
+
+/**
+ * The function updateUser(). Updates a user.
+ *
+ * @param {string} aid - The Application ID
+ * @param {string} uid - User's UID
+ * @param {string} api_token - The API Token
+ * @param {Object} data - The data that you want to update
+ * @param {Object} customData - The custom data/fields that you want to update
+ * @returns User
+ */
+PianoSdk.updateUser(aid, uid, api_token, data, customData);
+
+// Example:
+const user = await PianoSdk.updateUser(aid, uid, api_token, data, customData);
+// TODO: What to do with user?
 ```
+
+**_NOTE_:**
+_You can get **aid** and **uid** by decoding **accessToken** that you will get on signIn or register._
 
 ## Example
 

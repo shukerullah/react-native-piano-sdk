@@ -20,12 +20,26 @@ export function createApi(baseURL) {
   });
 }
 
-export async function post(url, params) {
+export async function get(url, params) {
   let body = [];
   Object.keys(params).forEach((key) => {
     body.push(`${key}=${params[key]}`);
   });
   body = body.join("&");
   const response = await api.post(url, body);
+  return MyPromise(response);
+}
+
+export async function post(url, params, body) {
+  let queryString = [];
+  Object.keys(params).forEach((key) => {
+    queryString.push(`${key}=${params[key]}`);
+  });
+  queryString = queryString.join("&");
+  const response = await api.post(`${url}?${queryString}`, body, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
   return MyPromise(response);
 }
