@@ -1,21 +1,30 @@
 import { NativeModules, DeviceEventEmitter } from "react-native";
 import { createApi, get, post } from "./fetch";
 
-const API_VERSION = "/api/v3";
+const PianoSdkModule = NativeModules.PianoSdk;
 
-const API = {
-  PUBLISHER_USER_GET: `${API_VERSION}/publisher/user/get`,
-  PUBLISHER_USER_UPDATE: `${API_VERSION}/publisher/user/update`,
+export const ENDPOINT = {
+  SANDBOX: "https://sandbox.tinypass.com/",
+  PRODUCTION: "https://buy.tinypass.com/",
+  PRODUCTION_ASIA_PACIFIC: "https://buy-ap.piano.io/",
+  PRODUCTION_AUSTRALIA: "https://buy-au.piano.io/",
 };
 
-const PianoSdkModule = NativeModules.PianoSdk;
+const API_VERSION = "/api/v3";
+
+export const API = {
+  PUBLISHER_USER_GET: `${API_VERSION}/publisher/user/get`,
+  PUBLISHER_USER_UPDATE: `${API_VERSION}/publisher/user/update`,
+  PUBLISHER_USER_ACCESS_CHECK: `${API_VERSION}/publisher/user/access/check`,
+  PUBLISHER_CONVERSATION_EXTERNAL_CREATE: `${API_VERSION}/publisher/conversion/external/create`,
+};
 
 const PIANO_LISTENER = "PIANO_LISTENER";
 
 export const LISTENER = {
   EXPERIENCE_EXECUTE: "experienceExecuteListener",
   METER: "meterListener",
-  NON_STIE: "nonSiteListener",
+  NON_SITE: "nonSiteListener",
   SHOW_LOGIN: "showLoginListener",
   SHOW_TEMPLATE: "showTemplateListener",
   TEMPLATE_EVENT: "templateCustomEvent",
@@ -23,13 +32,7 @@ export const LISTENER = {
   EXPERIENCE_EXCEPTION: "experienceExceptionListener",
   LOGIN: "login",
   REGISTER: "register",
-};
-
-export const ENDPOINT = {
-  SANDBOX: "https://sandbox.tinypass.com/",
-  PRODUCTION: "https://buy.tinypass.com/",
-  PRODUCTION_ASIA_PACIFIC: "https://buy-ap.piano.io/",
-  PRODUCTION_AUSTRALIA: "https://buy-au.piano.io/",
+  OFFER_SUBSCRIBE: "offer-subscribe",
 };
 
 const PianoSdk = {
@@ -43,7 +46,7 @@ const PianoSdk = {
   /**
    * The function init(). Initialize ID and Composer
    *
-   * @param {string} aid - The Application ID
+   * @param {string} aid - Application ID
    * @param {string} endpoint - The Endpoint
    * @param {string} [facebookAppId=null] - Facebook App Id required for native Facebook sign on
    * @param {responseCallback} [callback=null] - A callback to run
@@ -143,9 +146,9 @@ const PianoSdk = {
   /**
    * The function getUser(). Gets a user.
    *
-   * @param {string} aid - The Application ID
-   * @param {string} uid - User's UID
-   * @param {string} api_token - The API Token
+   * @param {string} aid - Application ID
+   * @param {string} uid - User ID
+   * @param {string} api_token - API token
    * @returns User
    */
   getUser(aid: string, uid: string, api_token: string) {
@@ -155,9 +158,9 @@ const PianoSdk = {
   /**
    * The function updateUser(). Updates a user.
    *
-   * @param {string} aid - The Application ID
-   * @param {string} uid - User's UID
-   * @param {string} api_token - The API Token
+   * @param {string} aid - Application ID
+   * @param {string} uid - User ID
+   * @param {string} api_token - API token
    * @param {Object} data - The data that you want to update
    * @param {Object} customData - The custom data/fields that you want to update
    * @returns User
@@ -174,6 +177,48 @@ const PianoSdk = {
       { aid, uid, api_token, ...data },
       customData
     );
+  },
+
+  /**
+   * The function checkUserAccess(). Checks a user access.
+   *
+   * @param {string} aid - Application ID
+   * @param {string} rid - Resource ID
+   * @param {string} uid - User ID
+   * @param {string} api_token - API token
+   * @returns User access
+   */
+  checkUserAccess(aid: string, rid: string, uid: string, api_token: string) {
+    return get(API.PUBLISHER_USER_ACCESS_CHECK, { aid, rid, uid, api_token });
+  },
+
+  /**
+   * The function submitReceipt(). Submits a receipt.
+   *
+   * @param {string} aid - Application ID
+   * @param {string} uid - User ID
+   * @param {string} api_token - API token
+   * @param {string} term_id - Term ID
+   * @param {Object} fields - Receipt that you want to submit
+   * @param {boolean} [check_validity=true] - If check_validity is set to false, the subscription is created without checking the validity of the receipt and the verification process will be skipped
+   * @returns User access
+   */
+  submitReceipt(
+    aid: string,
+    api_token: string,
+    uid: string,
+    term_id: string,
+    fields: Object,
+    check_validity = true
+  ) {
+    return get(API.PUBLISHER_CONVERSATION_EXTERNAL_CREATE, {
+      aid,
+      api_token,
+      uid,
+      term_id,
+      fields,
+      check_validity,
+    });
   },
 
   /**
