@@ -16,6 +16,7 @@ export const API = {
   PUBLISHER_USER_GET: `${API_VERSION}/publisher/user/get`,
   PUBLISHER_USER_UPDATE: `${API_VERSION}/publisher/user/update`,
   PUBLISHER_USER_ACCESS_CHECK: `${API_VERSION}/publisher/user/access/check`,
+  PUBLISHER_USER_ACCESS_LIST: `${API_VERSION}/publisher/user/access/list`,
   PUBLISHER_CONVERSATION_EXTERNAL_CREATE: `${API_VERSION}/publisher/conversion/external/create`,
 };
 
@@ -190,6 +191,18 @@ const PianoSdk = {
    */
   checkUserAccess(aid: string, rid: string, uid: string, api_token: string) {
     return get(API.PUBLISHER_USER_ACCESS_CHECK, { aid, rid, uid, api_token });
+  },
+
+  /**
+   * Lists all access that user have (resources)
+   *
+   * @param {string} aid - Application ID
+   * @param {string} uid - User ID
+   * @param {string} api_token - API token
+   * @returns User access
+   */
+  listUserAccess(aid: string, uid: string, api_token: string) {
+    return get(API.PUBLISHER_USER_ACCESS_LIST, { aid, uid, api_token });
   },
 
   /**
