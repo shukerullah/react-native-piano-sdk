@@ -22,6 +22,7 @@ import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.ReadableMapKeySetIterator;
+import com.facebook.react.bridge.ReadableType;
 import com.facebook.react.bridge.WritableArray;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
@@ -31,8 +32,10 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import io.piano.android.composer.Composer;
 
@@ -241,12 +244,10 @@ public class PianoSdkModule extends ReactContextBaseJavaModule implements Activi
             if(key.equals("accessToken")) {
                 setUserToken(config.getString(key));
             }
-            else if(key.contains("debug"))
-            {
+            else if(key.contains("debug")) {
                 builder.debug(config.getBoolean(key));
             }
-            else if(key.equals("contentCreated"))
-            {
+            else if(key.equals("contentCreated")) {
                 builder.contentCreated(config.getString(key));
             }
             else if(key.equals("contentAuthor")) {
@@ -257,6 +258,9 @@ public class PianoSdkModule extends ReactContextBaseJavaModule implements Activi
             }
             else if(key.equals("contentSection")) {
                 builder.contentSection(config.getString(key));
+            }
+            else if(key.equals("customVariables")) {
+                builder.customVariables(readableMapToMap(config.getMap(key)));
             }
             else if(key.equals("referer")) {
                 builder.referer(config.getString(key));
@@ -406,14 +410,33 @@ public class PianoSdkModule extends ReactContextBaseJavaModule implements Activi
     }
 
     @NotNull
+    private Map<String, String> readableMapToMap(@NotNull ReadableMap readableMap)
+    {
+        Map<String, String> map = new HashMap<String, String>();
+        ReadableMapKeySetIterator iterator = readableMap.keySetIterator();
+        while (iterator.hasNextKey()) {
+            String key = iterator.nextKey();
+            ReadableType type = readableMap.getType(key);
+            switch (type) {
+                case String:
+                    map.put(key, readableMap.getString(key));
+                    break;
+            }
+        }
+        return map;
+    }
+
+    @NotNull
     private List<String> readableArrayToArrayList(@NotNull ReadableArray readableArray)
     {
         List<String> arrayList = new ArrayList<>();
-        for(int i=0; i<readableArray.size(); i++)
+        for (int i = 0; i < readableArray.size(); i++)
         {
-            try {
-                arrayList.add(readableArray.getString(i));
-            } catch (Exception e) {
+            ReadableType type = readableArray.getType(i);
+            switch (type) {
+                case String:
+                    arrayList.add(readableArray.getString(i));
+                    break;
             }
         }
         return arrayList;

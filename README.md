@@ -156,6 +156,7 @@ class App extends React.PureComponent {
     // url : string,
     // contentAuthor: string,
     // contentSection: string,
+    // customVariables: Object,
     // tag: string,
     // tags: Array<string>,
     // zone: string
