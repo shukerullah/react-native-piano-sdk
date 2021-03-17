@@ -4,10 +4,10 @@ import { createApi, get, post } from "./fetch";
 const PianoSdkModule = NativeModules.PianoSdk;
 
 export const ENDPOINT = {
-  SANDBOX: "https://sandbox.tinypass.com/",
-  PRODUCTION: "https://buy.tinypass.com/",
-  PRODUCTION_ASIA_PACIFIC: "https://buy-ap.piano.io/",
-  PRODUCTION_AUSTRALIA: "https://buy-au.piano.io/",
+  SANDBOX: "https://sandbox.piano.io/",
+  PRODUCTION: "https://api.piano.io/",
+  PRODUCTION_ASIA_PACIFIC: "https://api-ap.piano.io/",
+  PRODUCTION_AUSTRALIA: "https://api-au.piano.io/",
 };
 
 const API_VERSION = "/api/v3";
