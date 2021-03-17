@@ -27,6 +27,9 @@ export async function get(url, params) {
   });
   body = body.join("&");
   const response = await api.post(url, body);
+  if (__DEV__) {
+        console.log("Piano SDK - get - response:", response);
+  }
   return MyPromise(response);
 }
 
