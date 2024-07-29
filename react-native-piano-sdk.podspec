@@ -22,5 +22,7 @@ Pod::Spec.new do |s|
   s.requires_arc = true
 
   s.dependency "React"
+  s.dependency "PianoComposer", "~> 2.3.13"
+  s.dependency "PianoOAuth", "~> 2.3.13"
 end
 

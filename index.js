@@ -13,6 +13,8 @@ export const ENDPOINT = {
 const API_VERSION = "/api/v3";
 
 export const API = {
+  PUBLISHER_GPDR_DELETE: `${API_VERSION}/publisher/gdpr/delete`,
+  PUBLISHER_TOKEN_REFRESH: `${API_VERSION}/publisher/token/refresh`,
   PUBLISHER_USER_GET: `${API_VERSION}/publisher/user/get`,
   PUBLISHER_USER_UPDATE: `${API_VERSION}/publisher/user/update`,
   PUBLISHER_USER_ACCESS_CHECK: `${API_VERSION}/publisher/user/access/check`,
@@ -108,8 +110,27 @@ const PianoSdk = {
    * @param {string} accessToken
    * @param {responseCallback} [callback=null] - A callback to run
    */
-  refreshToken(accessToken: string, callback: Function = null) {
-    PianoSdkModule.refreshToken(accessToken, callback);
+  // This function is currently disabled as it is only available for Android native method.
+  // We are awaiting the implementation of the iOS native method.
+  // refreshToken(accessToken: string, callback: Function = null) {
+  //   PianoSdkModule.refreshToken(accessToken, callback);
+  // },
+
+  /**
+   * The function refreshToken() is used to refresh a user's token.
+   * @param {string} aid - The Application ID.
+   * @param {string} api_token - The API token.
+   * @param {string} refresh_token - The user's token that needs to be refreshed.
+   * @returns {Object} - An object containing the refreshed user token and related information.
+   * @property {string} access_token - User’s access token.
+   * @property {string} token_type - The type of token (Bearer).
+   * @property {string} refresh_token - User's refresh token.
+   * @property {number} expires_in - The expiration time of the access token in seconds.
+   * @property {boolean} email_confirmation_required - Indicates if email confirmation is required.
+   * @property {boolean} extend_expired_access_enabled - Indicates if extending expired access is enabled.
+   */
+  refreshToken(aid, api_token, refresh_token) {
+    return get(API.PUBLISHER_TOKEN_REFRESH, { aid, api_token, refresh_token });
   },
 
   /**
@@ -154,6 +175,19 @@ const PianoSdk = {
    */
   getUser(aid: string, uid: string, api_token: string) {
     return get(API.PUBLISHER_USER_GET, { aid, uid, api_token });
+  },
+
+  /**
+   * The function deleteUser(). Delete a user.
+   *
+   * @param {string} aid - Application ID
+   * @param {string} uid - User ID
+   * @param {string} api_token - API token
+   * @param {string} scope - Delete scope
+   * @returns User
+   */
+  deleteUser(aid: string, uid: string, api_token: string, scope = "ALL") {
+    return get(API.PUBLISHER_GPDR_DELETE, { aid, uid, api_token, scope });
   },
 
   /**
