@@ -7,11 +7,12 @@ def safeExtGet(prop, fallback) {
     rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
 }
 
+apply plugin: 'com.android.library'
+
 buildscript {
     if (project == rootProject) {
         repositories {
             google()
-            jcenter()
         }
         dependencies {
             classpath 'com.android.tools.build:gradle:3.4.1'
@@ -19,21 +20,17 @@ buildscript {
     }
 }
 
-apply plugin: 'com.android.library'
-
 android {
     compileSdkVersion safeExtGet('compileSdkVersion', DEFAULT_COMPILE_SDK_VERSION)
     buildToolsVersion safeExtGet('buildToolsVersion', DEFAULT_BUILD_TOOLS_VERSION)
     defaultConfig {
         minSdkVersion safeExtGet('minSdkVersion', DEFAULT_MIN_SDK_VERSION)
         targetSdkVersion safeExtGet('targetSdkVersion', DEFAULT_TARGET_SDK_VERSION)
+        versionCode 1
+        versionName "1.0"
     }
     lintOptions {
         abortOnError false
-    }
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
     }
 }
 
@@ -48,7 +45,6 @@ repositories {
         url "$rootDir/../node_modules/jsc-android/dist"
     }
     google()
-    jcenter()
 }
 
 dependencies {

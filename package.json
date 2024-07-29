@@ -1,7 +1,7 @@
 {
   "name": "react-native-piano-sdk",
   "title": "React Native Piano Sdk",
-  "version": "1.1.3",
+  "version": "1.1.4",
   "description": "React Native Piano Sdk",
   "main": "index.js",
   "scripts": {
