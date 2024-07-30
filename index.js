@@ -1,7 +1,8 @@
-import { NativeModules, DeviceEventEmitter } from "react-native";
+import { DeviceEventEmitter, NativeEventEmitter, NativeModules, Platform } from "react-native";
 import { createApi, get, post } from "./fetch";
 
 const PianoSdkModule = NativeModules.PianoSdk;
+const eventEmitter = new NativeEventEmitter(PianoSdkModule)
 
 export const ENDPOINT = {
   SANDBOX: "https://sandbox.tinypass.com/",
@@ -61,7 +62,12 @@ const PianoSdk = {
     callback: Function = null
   ) {
     createApi(endpoint);
-    PianoSdkModule.init(aid, endpoint, facebookAppId, callback);
+    if(Platform.OS === 'ios') {
+      PianoSdkModule.initWithAID(aid, endpoint);
+    }
+    else {
+      PianoSdkModule.init(aid, endpoint, facebookAppId, callback);
+    }
   },
 
   /**
@@ -76,6 +82,19 @@ const PianoSdk = {
       callback(err);
     }
   },
+
+  signInIOS(
+    googleCID: String,
+    widgetType: Int,
+    didSignInCallbackHandler = ({payload}) => {},
+    didCancelSignInCallbackHandler = () => {})
+    {
+      PianoSdkModule.signInWithGoogleCID(
+        googleCID,
+        widgetType,
+        didSignInCallbackHandler,
+        didCancelSignInCallbackHandler);
+    },
 
   /**
    * The function register(). Register in ID and it will return activeToken in a callback which can then be used through the application.
@@ -102,6 +121,10 @@ const PianoSdk = {
     } catch (err) {
       callback(err);
     }
+  },
+  
+  signOutWithToken(token: String, didSignOutCallbackHandler = (error) => {}) {
+    PianoOauthModule.signOutWithToken(token, didSignOutCallbackHandler);
   },
 
   /**
@@ -306,6 +329,55 @@ const PianoSdk = {
       subscribe.remove();
     };
   },
+
+  execute(aid: String,
+    sandbox: bool = true,
+    tags: Array = null,
+    zoneID: String = null,
+    referrer: String = null,
+    url: String = null,
+    contentAuthor: String = null,
+    contentCreated: String = null,
+    contentSection: String = null,
+    customVariables: Dictionary = null,
+    userToken: String = null,
+    showLoginHandler = () => {},
+    showTemplateHandler = () => {}
+    ) {
+        if(tags !== null) {
+            tags = tags.filter((element) => {
+                return element != null;
+            });
+        }
+        PianoSdkModule.executeWithAID(
+            aid,
+            sandbox,
+            tags,
+            zoneID,
+            referrer,
+            url,
+            contentAuthor,
+            contentCreated,
+            contentSection,
+            customVariables,
+            userToken,
+            showLoginHandler,
+            showTemplateHandler
+            );
+    },
+
+    closeTemplateControllerWithCompleteHandler(completeHandler = () => {}) {
+      PianoSdkModule.closeTemplateControllerWithCompleteHandler(completeHandler);
+    },
+
+    addEventListenerIOS(eventName, callback = () => {}) {
+        const subscribe = eventEmitter.addListener(eventName, callback);
+        return subscribe
+    },
+
+    removeEventListenerIOS(eventName) {
+        eventEmitter.removeAllListeners(eventName);
+    }
 };
 
 export default PianoSdk;
